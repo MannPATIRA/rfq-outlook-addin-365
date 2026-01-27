@@ -16,10 +16,33 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Create output directory if it doesn't exist
-const OUTPUT_DIR = path.join(__dirname, 'output');
-if (!fs.existsSync(OUTPUT_DIR)) {
-    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+// Use /tmp for Vercel (serverless) or local output directory for development
+// Vercel's filesystem is read-only except for /tmp
+// Check for Vercel environment variables or if we're in a serverless context
+const isVercel = process.env.VERCEL || process.env.VERCEL_ENV || process.env.AWS_LAMBDA_FUNCTION_NAME;
+const OUTPUT_DIR = isVercel 
+    ? path.join('/tmp', 'output')
+    : path.join(__dirname, 'output');
+
+// Create output directory if it doesn't exist (lazy initialization)
+function ensureOutputDir() {
+    try {
+        if (!fs.existsSync(OUTPUT_DIR)) {
+            fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+        }
+    } catch (error) {
+        // If creation fails, try /tmp as fallback (for Vercel)
+        if (!isVercel && OUTPUT_DIR !== path.join('/tmp', 'output')) {
+            const tmpDir = path.join('/tmp', 'output');
+            if (!fs.existsSync(tmpDir)) {
+                fs.mkdirSync(tmpDir, { recursive: true });
+            }
+            // Note: This won't update OUTPUT_DIR constant, but we'll handle it in usage
+            console.warn(`Could not create ${OUTPUT_DIR}, using ${tmpDir} instead`);
+        } else {
+            throw error;
+        }
+    }
 }
 
 // Middleware
@@ -45,7 +68,12 @@ app.use(express.urlencoded({ extended: true }));
 
 // Serve static files
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
-app.use('/output', express.static(OUTPUT_DIR));
+// Only serve /output as static files if not in Vercel (Vercel uses /tmp which isn't accessible via static)
+// In Vercel, files are served via the /api/download endpoint
+if (!isVercel) {
+    ensureOutputDir();
+    app.use('/output', express.static(OUTPUT_DIR));
+}
 
 // Serve taskpane files
 app.get('/taskpane.html', (req, res) => {
@@ -136,6 +164,7 @@ app.post('/api/generate-documents', async (req, res) => {
     const { specifications, offerNumber = '41260018' } = req.body;
     
     try {
+        ensureOutputDir();
         const sessionId = uuidv4();
         const sessionDir = path.join(OUTPUT_DIR, sessionId);
         fs.mkdirSync(sessionDir, { recursive: true });
@@ -149,12 +178,20 @@ app.post('/api/generate-documents', async (req, res) => {
         const result = await runPythonGenerator(pythonScript, specsPath, sessionDir, offerNumber);
         
         if (result.success) {
+            // In Vercel, use download endpoint; otherwise use static file URLs
+            const excelUrl = isVercel 
+                ? `/api/download/${sessionId}/${offerNumber}_NRL.xlsx`
+                : `/output/${sessionId}/${offerNumber}_NRL.xlsx`;
+            const pdfUrl = isVercel
+                ? `/api/download/${sessionId}/${offerNumber}_NRL.pdf`
+                : `/output/${sessionId}/${offerNumber}_NRL.pdf`;
+            
             res.json({
                 success: true,
                 sessionId,
                 documents: {
-                    excel: `/output/${sessionId}/${offerNumber}_NRL.xlsx`,
-                    pdf: `/output/${sessionId}/${offerNumber}_NRL.pdf`
+                    excel: excelUrl,
+                    pdf: pdfUrl
                 }
             });
         } else {
