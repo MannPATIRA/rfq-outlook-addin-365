@@ -69,8 +69,9 @@ function generateMessageId() {
 
 /**
  * Send an email via Microsoft Graph API
+ * @param {string} fromEmail - Email address to send FROM (must be a mailbox in Azure AD tenant). Defaults to USER_EMAIL.
  */
-async function sendEmail({ to, cc, subject, body, inReplyTo, references, conversationId, fromDisplayName }) {
+async function sendEmail({ to, cc, subject, body, inReplyTo, references, conversationId, fromDisplayName, fromEmail }) {
   const messageId = generateMessageId();
   
   // Build the email message
@@ -112,12 +113,13 @@ async function sendEmail({ to, cc, subject, body, inReplyTo, references, convers
   // If Graph client is available, send real email
   if (graphClient) {
     try {
-      const userEmail = process.env.USER_EMAIL;
+      // Use fromEmail if provided, otherwise default to USER_EMAIL
+      const senderEmail = fromEmail || process.env.USER_EMAIL;
       const result = await graphClient
-        .api(`/users/${userEmail}/sendMail`)
+        .api(`/users/${senderEmail}/sendMail`)
         .post({ message, saveToSentItems: true });
       
-      console.log(`✅ Email sent: ${subject}`);
+      console.log(`✅ Email sent FROM ${senderEmail} TO ${to}: ${subject}`);
       
       return {
         success: true,
@@ -130,7 +132,9 @@ async function sendEmail({ to, cc, subject, body, inReplyTo, references, convers
     }
   } else {
     // Demo mode - just log and return mock response
+    const senderEmail = fromEmail || process.env.USER_EMAIL;
     console.log(`📧 [DEMO] Would send email:`);
+    console.log(`   From: ${senderEmail}`);
     console.log(`   To: ${to}`);
     console.log(`   Subject: ${subject}`);
     console.log(`   In-Reply-To: ${inReplyTo || 'none'}`);
@@ -276,7 +280,9 @@ async function simulateEngineeringReply({ conversationId, delayMs = 3000 }) {
     </div>
   `;
 
+  // Send automated reply FROM engineering email TO user email
   const result = await sendEmail({
+    fromEmail: process.env.ENGINEERING_EMAIL, // Send FROM engineering mailbox
     to: conversation.userEmail || process.env.USER_EMAIL,
     subject: subject,
     body: body,
@@ -405,7 +411,9 @@ async function simulateClientReply({ conversationId, delayMs = 3000 }) {
     </div>
   `;
 
+  // Send automated reply FROM client email TO user email
   const result = await sendEmail({
+    fromEmail: process.env.DEMO_CLIENT_EMAIL, // Send FROM client mailbox
     to: conversation.userEmail || process.env.USER_EMAIL,
     subject: subject,
     body: body,
