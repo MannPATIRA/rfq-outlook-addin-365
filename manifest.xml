@@ -7,13 +7,13 @@
 
   <Id>f8e2d1a0-6b4c-4e9f-a3d7-1c5b8e2f9a40</Id>
   <Version>1.0.0.0</Version>
-  <ProviderName>Hexa RFQ Management</ProviderName>
+  <ProviderName>HEXA ADD-IN</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="Hexa RFQ Manager"/>
-  <Description DefaultValue="Automate RFQ processing for Fiber Bragg Grating products. Extract specifications, manage engineering communications, and generate quotes."/>
+  <DisplayName DefaultValue="My Outlook Add-in"/>
+  <Description DefaultValue="Minimal Outlook add-in."/>
   <IconUrl DefaultValue="https://localhost:3000/assets/icon-64.png"/>
   <HighResolutionIconUrl DefaultValue="https://localhost:3000/assets/icon-128.png"/>
-  <SupportUrl DefaultValue="https://hexa.ai/support"/>
+  <SupportUrl DefaultValue="https://localhost:3000"/>
   
   <AppDomains>
     <AppDomain>https://localhost:3000</AppDomain>
@@ -94,11 +94,11 @@
           <bt:Url id="Taskpane.Url" DefaultValue="https://localhost:3000/taskpane.html"/>
         </bt:Urls>
         <bt:ShortStrings>
-          <bt:String id="GroupLabel" DefaultValue="Hexa RFQ"/>
-          <bt:String id="TaskpaneButton.Label" DefaultValue="Process RFQ"/>
+          <bt:String id="GroupLabel" DefaultValue="Add-in"/>
+          <bt:String id="TaskpaneButton.Label" DefaultValue="Open"/>
         </bt:ShortStrings>
         <bt:LongStrings>
-          <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Open the RFQ processing panel to extract specifications and manage quotes."/>
+          <bt:String id="TaskpaneButton.Tooltip" DefaultValue="Show taskpane"/>
         </bt:LongStrings>
       </Resources>
     </VersionOverrides>

@@ -1,25 +1,15 @@
 {
-  "name": "hexa-rfq-outlook-addin",
+  "name": "outlook-addin-minimal",
   "version": "1.0.0",
-  "description": "Outlook Add-in for RFQ Management - Fiber Bragg Grating Products",
+  "description": "Minimal Outlook add-in",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js",
-    "generate-docs": "python3 src/helpers/document_generator.py",
-    "test": "echo \"Running tests...\" && exit 0"
+    "dev": "nodemon server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "helmet": "^7.1.0",
-    "morgan": "^1.10.0",
-    "multer": "^1.4.5-lts.1",
-    "uuid": "^9.0.1",
-    "dotenv": "^16.3.1",
-    "@azure/msal-node": "^2.6.0",
-    "@microsoft/microsoft-graph-client": "^3.0.7",
-    "isomorphic-fetch": "^3.0.0"
+    "cors": "^2.8.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
@@ -27,14 +17,5 @@
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": [
-    "outlook",
-    "add-in",
-    "rfq",
-    "fbg",
-    "fiber-optics",
-    "quote-management"
-  ],
-  "author": "Hexa AI",
   "license": "MIT"
 }

@@ -45,3 +45,8 @@ Thumbs.db
 *.tmp
 *.temp
 .cache/
+
+# SSL certificates (local development only)
+*.pem
+key.pem
+cert.pem
