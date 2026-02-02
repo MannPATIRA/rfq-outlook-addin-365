@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RFQ Copilot</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="header-left">
+      <span id="header-title" class="header-brand"></span>
+      <span id="account-divider" class="account-divider hidden">|</span>
+      <span id="user-name" class="user-name hidden"></span>
+    </div>
+    <div class="header-right">
+        <button id="sign-in-btn" class="btn btn-primary" type="button">Sign In</button>
+        <button id="sign-out-btn" class="btn btn-primary hidden" type="button" title="Sign Out">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <p id="status-message" class="status-message"></p>
+
+    <!-- Neutral: no email or other email -->
+    <div id="context-neutral" class="context-block">
+      <div class="neutral-message" id="neutral-message-text">
+        <h3>No Active Context</h3>
+        <p>Open an RFQ email from <strong>customer-1</strong> or a reply from <strong>Engineering</strong> to activate the Copilot.</p>
+      </div>
+    </div>
+
+    <!-- Initial RFQ from customer-1 -->
+    <div id="context-initial-rfq" class="context-block">
+      <div id="rfq-summary-banner" class="summary-banner">
+        <p class="summary-title" id="rfq-summary-title">RFQ #41260018 – NRL</p>
+        <p class="summary-meta" id="rfq-summary-meta">2 FBG Arrays | Qty: 10</p>
+      </div>
+
+      <div class="section-title">Technical Specifications</div>
+      <div class="card">
+        <div id="specs-grid" class="specs-grid"></div>
+      </div>
+
+      <div class="collapsible-section" id="section-customer-questions">
+        <div class="collapsible-section-header" id="toggle-customer-questions" aria-expanded="true">
+          <span>Customer Questions (5)</span>
+          <span class="chevron" aria-hidden="true">▼</span>
+        </div>
+        <div class="collapsible-section-body" id="body-customer-questions">
+          <div id="customer-questions-accordion" class="accordion"></div>
+        </div>
+      </div>
+
+      <div class="collapsible-section" id="section-information-needed">
+        <div class="collapsible-section-header" id="toggle-information-needed" aria-expanded="true">
+          <span>Information Needed</span>
+          <span class="chevron" aria-hidden="true">▼</span>
+        </div>
+        <div class="collapsible-section-body" id="body-information-needed">
+          <div class="section-title">Missing from RFQ</div>
+          <ul id="missing-details-list" class="detail-list"></ul>
+          
+          <div class="section-title">Confirmations Needed</div>
+          <ul id="questions-to-ask-list" class="question-list"></ul>
+        </div>
+      </div>
+
+      <div class="actions-block">
+        <div class="section-title">Actions</div>
+        <button id="send-rfq-btn" class="btn btn-primary" type="button" disabled>Send to Engineering Review</button>
+        <button id="reply-direct-to-customer-btn" class="btn btn-secondary" type="button" disabled>Reply Directly to Customer</button>
+      </div>
+    </div>
+
+    <!-- Engineering reply -->
+    <div id="context-engineering-reply" class="context-block">
+      <div class="summary-banner">
+        <p class="summary-title">Engineering Assessment</p>
+        <p class="summary-meta">RFQ #41260018 (NRL – 2 FBG Arrays)</p>
+      </div>
+
+      <div class="section-title">Engineering Answers</div>
+      <div class="card">
+        <div id="engineering-answers-container"></div>
+      </div>
+
+      <div class="collapsible-section" id="section-engineering-missing">
+        <div class="collapsible-section-header" id="toggle-engineering-missing" aria-expanded="false">
+          <span>Missing from RFQ</span>
+          <span class="chevron" aria-hidden="true" style="transform: rotate(-90deg);">▼</span>
+        </div>
+        <div class="collapsible-section-body" id="body-engineering-missing" style="display: none;">
+          <ul id="engineering-missing-details-list" class="detail-list"></ul>
+        </div>
+      </div>
+
+      <div class="collapsible-section" id="section-engineering-confirmations">
+        <div class="collapsible-section-header" id="toggle-engineering-confirmations" aria-expanded="false">
+          <span>Confirmations Needed</span>
+          <span class="chevron" aria-hidden="true" style="transform: rotate(-90deg);">▼</span>
+        </div>
+        <div class="collapsible-section-body" id="body-engineering-confirmations" style="display: none;">
+          <ul id="engineering-questions-to-ask-list" class="question-list"></ul>
+        </div>
+      </div>
+
+      <div class="actions-block">
+        <div class="section-title">Next Steps</div>
+        <button id="reply-to-original-btn" class="btn btn-primary" type="button" disabled>Send Clarifications to Customer</button>
+      </div>
+    </div>
+
+    <!-- Customer reply with details: all complete, send final quote -->
+    <div id="context-customer-reply-details" class="context-block">
+      <div class="summary-banner" style="border-left-color: var(--success-text); background: var(--success-bg);">
+        <p class="summary-title" style="color: var(--success-text);">All Details Complete</p>
+        <p class="summary-meta" style="color: var(--success-text);">Ready to send final quote.</p>
+      </div>
+
+      <div class="section-title">Confirmed Details</div>
+      <div class="card">
+        <ul id="confirmed-details-list" class="confirmed-details"></ul>
+      </div>
+
+      <div class="section-title">Quote Summary</div>
+      <div id="quote-summary-card" class="quote-summary-card">
+        <div class="quote-line"><span>Product</span><span id="quote-product">10x 2 FBG arrays, FC/APC</span></div>
+        <div class="quote-line"><span>Net Amount</span><span id="quote-amount">€2,206.40</span></div>
+        <div class="quote-line"><span>Terms</span><span id="quote-terms">Payment in advance, EXW</span></div>
+        <div class="quote-line"><span>Validity</span><span id="quote-valid">30 days</span></div>
+        <div class="quote-total">
+            <span>Total</span>
+            <span id="quote-total-value">€2,206.40</span>
+        </div>
+      </div>
+
+      <div class="section-title">Attachments</div>
+      <ul id="attachment-preview-list" class="attachment-list">
+        <li>
+          <div class="attachment-icon">PDF</div>
+          <div class="attachment-name">41260018 NRL.pdf</div>
+          <button type="button" class="btn-link" id="view-pdf-btn">Preview</button>
+        </li>
+        <li>
+          <div class="attachment-icon">XLS</div>
+          <div class="attachment-name">41260018 NRL.xlsx</div>
+          <button type="button" class="btn-link" id="view-xlsx-btn">Preview</button>
+        </li>
+      </ul>
+
+      <div class="actions-block">
+        <div class="section-title">Actions</div>
+        <button id="send-final-reply-btn" class="btn btn-primary" type="button" disabled>Send Final Quote to Customer</button>
+      </div>
+    </div>
+  </main>
+
+  <script src="/services/auth.js"></script>
+  <script src="/data/rfq-data.js"></script>
+  <script src="/data/email-templates.js"></script>
+  <script src="/data/attachments.js"></script>
+  <script src="taskpane.js"></script>
+</body>
+</html>
