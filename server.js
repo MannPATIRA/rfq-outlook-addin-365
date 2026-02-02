@@ -43,6 +43,11 @@ app.get('/taskpane.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/taskpane/taskpane.js'));
 });
 
+app.get('/services/auth.js', (req, res) => {
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'src/services/auth.js'));
+});
+
 app.get('/commands.html', (req, res) => {
   res.send(`<!DOCTYPE html>
 <html>

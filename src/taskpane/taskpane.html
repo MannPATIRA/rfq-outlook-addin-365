@@ -5,9 +5,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>My Outlook Add-in</title>
   <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
 </head>
 <body>
-  <p>Hello</p>
+  <header class="header">
+    <div class="header-left">
+      <span id="header-title" class="header-brand">Outlook Add-in</span>
+      <button id="sign-in-btn" class="ms-Button ms-Button--primary sign-in-btn" type="button">
+        <span class="ms-Button-label">Sign In</span>
+      </button>
+      <span id="user-name" class="user-name hidden"></span>
+    </div>
+    <div class="header-actions">
+      <span id="account-divider" class="account-divider hidden">|</span>
+      <button id="sign-out-btn" class="ms-Button ms-Button--icon hidden" type="button" title="Sign Out">Sign Out</button>
+    </div>
+  </header>
+
+  <main class="main">
+    <p id="status-message" class="status-message"></p>
+    <div id="context-notify-engineering" class="context-block">
+      <button id="send-rfq-btn" class="ms-Button ms-Button--primary send-rfq-btn" type="button" disabled>
+        <span class="ms-Button-label">Notify Engineering</span>
+      </button>
+      <p class="context-copy context-copy-margin">Or reply directly to customer (no engineering).</p>
+      <button id="reply-direct-to-customer-btn" class="ms-Button ms-Button--primary reply-direct-to-customer-btn" type="button" disabled>
+        <span class="ms-Button-label">Reply directly to customer</span>
+      </button>
+    </div>
+    <div id="context-reply-to-original" class="context-block hidden">
+      <p class="context-copy">You're viewing the reply from Engineering. Send an automated reply back to the original email?</p>
+      <button id="reply-to-original-btn" class="ms-Button ms-Button--primary reply-to-original-btn" type="button" disabled>
+        <span class="ms-Button-label">Reply to original email</span>
+      </button>
+    </div>
+    <div id="context-final-reply-to-customer" class="context-block hidden">
+      <p class="context-copy">You're viewing a reply from customer-1. Send a final automated reply to this email?</p>
+      <button id="send-final-reply-btn" class="ms-Button ms-Button--primary send-final-reply-btn" type="button" disabled>
+        <span class="ms-Button-label">Send final reply to customer</span>
+      </button>
+    </div>
+  </main>
+
+  <script src="/services/auth.js"></script>
   <script src="taskpane.js"></script>
 </body>
 </html>
+
+<style>
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header-brand { font-weight: 600; }
+  .user-name, .account-divider { margin-left: 4px; font-size: 13px; color: #333; }
+  .hidden { display: none !important; }
+  .main { padding: 16px; }
+  .status-message { min-height: 1.5em; margin-bottom: 12px; font-size: 13px; color: #666; }
+  .status-message.error { color: #a00; }
+  .status-message.success { color: #060; }
+  .ms-Button { padding: 6px 12px; cursor: pointer; }
+  .ms-Button:disabled { cursor: not-allowed; opacity: 0.6; }
+  .send-rfq-btn { margin-top: 8px; }
+  .context-copy-margin { margin-top: 12px; margin-bottom: 4px; }
+  .reply-direct-to-customer-btn { margin-top: 4px; }
+  .context-block { margin-top: 8px; }
+  .context-copy { font-size: 13px; color: #333; margin-bottom: 8px; }
+  .reply-to-original-btn { margin-top: 4px; }
+  .send-final-reply-btn { margin-top: 4px; }
+</style>
