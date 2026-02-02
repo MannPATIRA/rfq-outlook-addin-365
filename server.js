@@ -34,6 +34,7 @@ app.use(cors({
 }));
 
 app.use('/assets', express.static(path.join(__dirname, 'assets')));
+app.use('/assets/templates', express.static(path.join(__dirname, 'src/assets/templates')));
 
 app.get('/taskpane.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/taskpane/taskpane.html'));
@@ -46,6 +47,21 @@ app.get('/taskpane.js', (req, res) => {
 app.get('/services/auth.js', (req, res) => {
   res.type('application/javascript');
   res.sendFile(path.join(__dirname, 'src/services/auth.js'));
+});
+
+app.get('/data/rfq-data.js', (req, res) => {
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'src/data/rfq-data.js'));
+});
+
+app.get('/data/email-templates.js', (req, res) => {
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'src/data/email-templates.js'));
+});
+
+app.get('/styles.css', (req, res) => {
+  res.type('text/css');
+  res.sendFile(path.join(__dirname, 'src/taskpane/styles.css'));
 });
 
 app.get('/commands.html', (req, res) => {

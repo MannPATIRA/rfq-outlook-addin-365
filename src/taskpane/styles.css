@@ -1,0 +1,405 @@
+/* RFQ Copilot – modern, clean taskpane styling */
+
+:root {
+  --color-bg: #fafafa;
+  --color-surface: #ffffff;
+  --color-border: #e5e7eb;
+  --color-text: #1f2937;
+  --color-text-muted: #6b7280;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-info: #0284c7;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --radius: 8px;
+  --radius-sm: 6px;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--color-text);
+  background: var(--color-bg);
+  min-height: 100vh;
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.header-brand {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.user-name,
+.account-divider {
+  margin-left: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* Main content area – scrollable */
+.main {
+  padding: 12px 14px 20px;
+  overflow-y: auto;
+  max-height: calc(100vh - 52px);
+}
+
+/* Status banner */
+.status-message {
+  min-height: 1.5em;
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.status-message.error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-color: #fecaca;
+}
+
+.status-message.success {
+  color: var(--color-success);
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+/* Section titles */
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin: 0 0 8px 0;
+  padding: 0;
+}
+
+/* Cards */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 12px 14px;
+  margin-bottom: 12px;
+}
+
+.card:last-child {
+  margin-bottom: 0;
+}
+
+/* Technical specs grid */
+.specs-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+  font-size: 12px;
+}
+
+.spec-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spec-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--color-text-muted);
+}
+
+.spec-value {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+/* Accordion for Q&A */
+.accordion {
+  margin-bottom: 12px;
+}
+
+.accordion-item {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 6px;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.accordion-item:last-child {
+  margin-bottom: 0;
+}
+
+.accordion-header {
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.accordion-header:hover {
+  background: var(--color-bg);
+}
+
+.accordion-header .chevron {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.accordion-item.open .accordion-header .chevron {
+  transform: rotate(180deg);
+}
+
+.accordion-body {
+  padding: 0 12px 12px;
+  display: none;
+}
+
+.accordion-item.open .accordion-body {
+  display: block;
+}
+
+.accordion-body-inner {
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--color-info);
+}
+
+/* Lists – missing details & questions to ask */
+.detail-list,
+.question-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.detail-list li,
+.question-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 4px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+}
+
+.detail-list li:last-child,
+.question-list li:last-child {
+  margin-bottom: 0;
+}
+
+.detail-list li .badge {
+  flex-shrink: 0;
+}
+
+.question-list li::before {
+  content: "?";
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-info);
+  background: #e0f2fe;
+  border-radius: 50%;
+}
+
+/* Badges */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border-radius: 4px;
+}
+
+.badge-critical {
+  background: #fef3c7;
+  color: var(--color-warning);
+}
+
+.badge-high {
+  background: #dbeafe;
+  color: var(--color-info);
+}
+
+.badge-complete {
+  background: #d1fae5;
+  color: var(--color-success);
+}
+
+/* Action buttons container */
+.actions-block {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
+}
+
+.actions-block .section-title {
+  margin-bottom: 10px;
+}
+
+.btn {
+  display: block;
+  width: 100%;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn:last-child {
+  margin-bottom: 0;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--color-bg);
+}
+
+/* Context blocks – show/hide per email type */
+.context-block {
+  display: none;
+}
+
+.context-block.visible {
+  display: block;
+}
+
+/* Engineering review view – parsed answers */
+.engineering-answers .card {
+  margin-bottom: 10px;
+}
+
+.engineering-answers .answer-number {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+  margin-bottom: 4px;
+}
+
+.engineering-answers .answer-text {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text);
+}
+
+/* Final quote view – all complete */
+.complete-message {
+  padding: 14px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-success);
+  margin-bottom: 12px;
+}
+
+.complete-message .section-title {
+  color: var(--color-success);
+  margin-bottom: 6px;
+}
+
+/* Neutral / no-email view */
+.neutral-message {
+  padding: 16px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-muted);
+  background: var(--color-surface);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+}
+
+/* Divider between sections */
+.section-divider {
+  height: 1px;
+  background: var(--color-border);
+  margin: 14px 0;
+}

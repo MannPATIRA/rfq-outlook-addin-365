@@ -26,8 +26,40 @@ const TENANT_ID = process.env.AZURE_TENANT_ID || 'hexa729.onmicrosoft.com';
 const FROM_EMAIL = 'customer-1@hexa729.onmicrosoft.com';
 const TO_EMAIL = process.env.TO_EMAIL || 'mannpatira@hexa729.onmicrosoft.com';
 
-const SUBJECT = 'RFQ – Add-in test ' + new Date().toISOString().slice(0, 19).replace('T', ' ');
-const BODY = 'This email was sent by the send-customer1-email script so you can open it in Outlook and use the add-in (Notify Engineering).';
+const SUBJECT = 'RFQ for 2 FBG Arrays – NRL – ' + new Date().toISOString().slice(0, 19).replace('T', ' ');
+
+const BODY = `Dear Sir or Madam,
+
+We would like to request a quote for the following FBG (Fiber Bragg Grating) optical fiber arrays. Please treat this as our initial RFQ.
+
+TECHNICAL SPECIFICATIONS
+
+• Quantity: 10 units
+• Product: 2 FBG arrays per unit
+• Fiber type: SM1330-E9/125PI, Single Mode
+• Fiber coating: Polyimide
+• Total fiber length: 10,050 mm
+• FBG spacing: 50 mm
+• Wavelength: 1550.39 nm (both gratings)
+• Connectors: FC/APC on both ends
+• FBG length: 12.0 mm nominal
+• FWHM: 0.09 nm nominal
+• Remarks: No fiber change without agreement; tolerance first to last FBG max 5 mm. Label on spool.
+
+We have a few technical questions before placing an order:
+
+1. Can you provide apodization for reduced sidelobe levels?
+2. What is the maximum operating temperature for polyimide-coated fibers?
+3. Will FemtoPlus technology be used for improved thermal stability?
+4. What annealing temperatures do you use for our operating range (-40°C to +85°C)?
+5. Can you provide certification for aerospace applications?
+
+We have not yet specified the exact reflectivity percentage, FWHM tolerance requirement, or SLSR minimum for this application, and we would need to confirm calibration temperature range and delivery timeline. We are happy to provide these details upon your request.
+
+Please send a formal quote and specification sheet at your earliest convenience. We look forward to your response.
+
+Best regards,
+NRL (Customer-1)`;
 
 function decodeJwtPayload(token) {
   try {
