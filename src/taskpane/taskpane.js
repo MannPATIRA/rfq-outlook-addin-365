@@ -64,6 +64,10 @@ async function initializeApp() {
   updateSendButtonState();
   renderInitialRfqFromPreset();
   renderEngineeringAnswersFromPreset();
+  renderQuoteSummary();
+  renderConfirmedDetails();
+  setupCollapsibleSections();
+  setupAttachmentPreviewButtons();
   detectEmailContext();
   if (Office.context.mailbox && Office.context.mailbox.addHandlerAsync) {
     Office.context.mailbox.addHandlerAsync(Office.EventType.ItemChanged, function () {
@@ -113,18 +117,44 @@ function updateAuthUI() {
 
 function updateSendButtonState() {
   var btn = document.getElementById('send-rfq-btn');
-  if (btn) btn.disabled = !AuthService.isSignedIn();
+  if (btn && !btn.classList.contains('btn-success')) btn.disabled = !AuthService.isSignedIn();
   var replyBtn = document.getElementById('reply-to-original-btn');
-  if (replyBtn) replyBtn.disabled = !AuthService.isSignedIn();
+  if (replyBtn && !replyBtn.classList.contains('btn-success')) replyBtn.disabled = !AuthService.isSignedIn();
   var finalReplyBtn = document.getElementById('send-final-reply-btn');
-  if (finalReplyBtn) finalReplyBtn.disabled = !AuthService.isSignedIn();
+  if (finalReplyBtn && !finalReplyBtn.classList.contains('btn-success')) finalReplyBtn.disabled = !AuthService.isSignedIn();
   var directReplyBtn = document.getElementById('reply-direct-to-customer-btn');
-  if (directReplyBtn) directReplyBtn.disabled = !AuthService.isSignedIn();
+  if (directReplyBtn && !directReplyBtn.classList.contains('btn-success')) directReplyBtn.disabled = !AuthService.isSignedIn();
+}
+
+function renderMissingDetails(containerId) {
+  var data = typeof RFQ_DATA !== 'undefined' ? RFQ_DATA : null;
+  var list = document.getElementById(containerId);
+  if (!list || !data || !data.missingDetails || !data.missingDetails.length) return;
+
+  list.innerHTML = data.missingDetails.map(function (m) {
+    var badgeClass = m.importance === 'critical' ? 'badge-critical' : 'badge-high';
+    return '<li><span class="badge ' + badgeClass + '">' + escapeHtml(m.importance || '') + '</span> ' + escapeHtml(m.field) + '</li>';
+  }).join('');
+}
+
+function renderQuestionsToAsk(containerId) {
+  var data = typeof RFQ_DATA !== 'undefined' ? RFQ_DATA : null;
+  var list = document.getElementById(containerId);
+  if (!list || !data || !data.questionsToAsk || !data.questionsToAsk.length) return;
+
+  list.innerHTML = data.questionsToAsk.map(function (q) {
+    return '<li>' + escapeHtml(q) + '</li>';
+  }).join('');
 }
 
 function renderInitialRfqFromPreset() {
   var data = typeof RFQ_DATA !== 'undefined' ? RFQ_DATA : null;
   if (!data) return;
+
+  var titleEl = document.getElementById('rfq-summary-title');
+  var metaEl = document.getElementById('rfq-summary-meta');
+  if (titleEl) titleEl.textContent = 'RFQ #' + (data.technicalSpecs.offerNumber || '41260018') + ' – ' + (data.technicalSpecs.customer || 'NRL');
+  if (metaEl) metaEl.textContent = '2 FBG Arrays | Qty: ' + (data.technicalSpecs.quantity || 10);
 
   var grid = document.getElementById('specs-grid');
   if (grid) {
@@ -155,7 +185,7 @@ function renderInitialRfqFromPreset() {
             '<span class="chevron" aria-hidden="true">▼</span>' +
           '</button>' +
           '<div class="accordion-body">' +
-            '<div class="accordion-body-inner">' + escapeHtml(q.answer) + '</div>' +
+            '<textarea class="accordion-answer-input" data-question-id="' + (q.id || idx) + '" rows="1" placeholder="Edit answer…">' + escapeHtml(q.answer) + '</textarea>' +
           '</div>' +
         '</div>'
       );
@@ -163,25 +193,28 @@ function renderInitialRfqFromPreset() {
     accordion.querySelectorAll('.accordion-header').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var item = btn.closest('.accordion-item');
-        if (item) item.classList.toggle('open');
+        if (item) {
+          item.classList.toggle('open');
+          var ta = item.querySelector('.accordion-answer-input');
+          if (ta) setTimeout(function () { autoResizeAnswerTextarea(ta); }, 0);
+        }
       });
+    });
+    accordion.querySelectorAll('.accordion-answer-input').forEach(function (ta) {
+      autoResizeAnswerTextarea(ta);
+      ta.addEventListener('input', function () { autoResizeAnswerTextarea(ta); });
     });
   }
 
-  var missingList = document.getElementById('missing-details-list');
-  if (missingList && data.missingDetails && data.missingDetails.length) {
-    missingList.innerHTML = data.missingDetails.map(function (m) {
-      var badgeClass = m.importance === 'critical' ? 'badge-critical' : 'badge-high';
-      return '<li><span class="badge ' + badgeClass + '">' + escapeHtml(m.importance || '') + '</span> ' + escapeHtml(m.field) + '</li>';
-    }).join('');
-  }
+  renderMissingDetails('missing-details-list');
+  renderQuestionsToAsk('questions-to-ask-list');
+}
 
-  var askList = document.getElementById('questions-to-ask-list');
-  if (askList && data.questionsToAsk && data.questionsToAsk.length) {
-    askList.innerHTML = data.questionsToAsk.map(function (q) {
-      return '<li>' + escapeHtml(q) + '</li>';
-    }).join('');
-  }
+function stripHtml(html) {
+  if (!html) return '';
+  var div = document.createElement('div');
+  div.innerHTML = html;
+  return (div.textContent || div.innerText || '').trim();
 }
 
 function renderEngineeringAnswersFromPreset() {
@@ -192,24 +225,108 @@ function renderEngineeringAnswersFromPreset() {
   if (!container) return;
 
   var body = templates.engineeringReply.body;
-  var lines = body.split(/\n/).filter(function (l) { return l.trim(); });
+  // Parse proper numbered list items from the HTML content
+  var parser = new DOMParser();
+  var doc = parser.parseFromString(body, 'text/html');
+  var listItems = doc.querySelectorAll('li');
+  
   var cards = [];
-  var current = [];
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    var numMatch = line.match(/^(\d+)\.\s/);
-    if (numMatch && current.length) {
-      cards.push(current.join('\n'));
-      current = [line];
-    } else {
-      current.push(line);
-    }
-  }
-  if (current.length) cards.push(current.join('\n'));
+  if (listItems.length > 0) {
+    listItems.forEach(function(li, index) {
+      // Clean up the text content
+      var text = li.textContent.trim();
+      // Try to find a bold title
+      var strong = li.querySelector('strong');
+      var title = strong ? strong.textContent.replace(/:$/, '') : 'Item ' + (index + 1);
+      var content = text;
+      
+      // If we stripped the title from text, ensure content is correct
+      if (strong && text.startsWith(strong.textContent)) {
+         content = text.substring(strong.textContent.length).trim();
+         // clean up leading colon or space
+         content = content.replace(/^[:\s]+/, '');
+      }
 
-  container.innerHTML = cards.map(function (text, idx) {
-    return '<div class="card"><div class="answer-number">Item ' + (idx + 1) + '</div><div class="answer-text">' + escapeHtml(text) + '</div></div>';
+      cards.push({ title: title, content: content });
+    });
+  } else {
+    // Fallback if no <li> found
+    var text = stripHtml(body);
+    cards.push({ title: 'Assessment', content: text });
+  }
+
+  container.innerHTML = '<ul class="engineering-answers-list">' + cards.map(function (item) {
+    return (
+      '<li>' +
+        '<span class="eng-label">' + escapeHtml(item.title) + '</span>' +
+        '<span class="eng-value">' + escapeHtml(item.content) + '</span>' +
+      '</li>'
+    );
+  }).join('') + '</ul>';
+
+  renderMissingDetails('engineering-missing-details-list');
+  renderQuestionsToAsk('engineering-questions-to-ask-list');
+}
+
+function renderQuoteSummary() {
+  var productEl = document.getElementById('quote-product');
+  var amountEl = document.getElementById('quote-amount');
+  var termsEl = document.getElementById('quote-terms');
+  var validEl = document.getElementById('quote-valid');
+  var totalEl = document.getElementById('quote-total-value');
+  if (productEl) productEl.textContent = '10x 2 FBG arrays, FC/APC both ends';
+  if (amountEl) amountEl.textContent = '€2,206.40';
+  if (termsEl) termsEl.textContent = 'Payment in advance, EXW';
+  if (validEl) validEl.textContent = '30 days';
+  if (totalEl) totalEl.textContent = '€2,206.40';
+}
+
+/** Preset list of customer-confirmed items (from customer reply with details). */
+var CONFIRMED_DETAILS_PRESET = [
+  { label: 'Reflectivity', value: '10%' },
+  { label: 'Calibration range', value: '-40°C to +85°C' },
+  { label: 'Delivery', value: '8 weeks from order confirmation' },
+  { label: 'SLSR minimum', value: '8.0 dB (confirmed as acceptance criterion)' },
+  { label: 'Calibration data', value: '5-point standard characterisation' },
+];
+
+function renderConfirmedDetails() {
+  var list = document.getElementById('confirmed-details-list');
+  if (!list) return;
+  list.innerHTML = CONFIRMED_DETAILS_PRESET.map(function (item) {
+    return '<li class="confirmed-detail-item"><span class="confirmed-label">' + escapeHtml(item.label) + '</span><span class="confirmed-value">' + escapeHtml(item.value) + '</span></li>';
   }).join('');
+}
+
+function setupCollapsibleSections() {
+  function toggleSection(headerId, bodyId) {
+    var header = document.getElementById(headerId);
+    var body = document.getElementById(bodyId);
+    if (!header || !body) return;
+    header.addEventListener('click', function () {
+      var open = body.style.display !== 'none';
+      body.style.display = open ? 'none' : 'block';
+      header.setAttribute('aria-expanded', open ? 'false' : 'true');
+      var chevron = header.querySelector('.chevron');
+      if (chevron) chevron.style.transform = open ? 'rotate(-90deg)' : 'rotate(0deg)';
+    });
+  }
+  toggleSection('toggle-customer-questions', 'body-customer-questions');
+  toggleSection('toggle-information-needed', 'body-information-needed');
+  toggleSection('toggle-engineering-missing', 'body-engineering-missing');
+  toggleSection('toggle-engineering-confirmations', 'body-engineering-confirmations');
+}
+
+function setupAttachmentPreviewButtons() {
+  var baseUrl = typeof window !== 'undefined' && window.location && window.location.origin ? window.location.origin : '';
+  var pdfUrl = baseUrl + '/assets/templates/quote-template.pdf';
+  var xlsxUrl = baseUrl + '/assets/templates/nrl-template.xlsx';
+  document.getElementById('view-pdf-btn')?.addEventListener('click', function () {
+    window.open(pdfUrl, '_blank');
+  });
+  document.getElementById('view-xlsx-btn')?.addEventListener('click', function () {
+    window.open(xlsxUrl, '_blank');
+  });
 }
 
 function escapeHtml(s) {
@@ -217,6 +334,15 @@ function escapeHtml(s) {
   var div = document.createElement('div');
   div.textContent = s;
   return div.innerHTML;
+}
+
+function autoResizeAnswerTextarea(ta) {
+  if (!ta || ta.nodeName !== 'TEXTAREA') return;
+  ta.style.height = 'auto';
+  var h = ta.scrollHeight;
+  var minH = 60;
+  var maxH = 500;
+  ta.style.height = Math.min(Math.max(h, minH), maxH) + 'px';
 }
 
 function showContext(contextId) {
@@ -361,6 +487,14 @@ function getFinalQuoteComment() {
     : 'Please find attached our quote. Thank you.';
 }
 
+function setButtonSent(btnId) {
+  var btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.textContent = 'Sent';
+  btn.classList.add('btn-success');
+  btn.disabled = true;
+}
+
 async function handleSendRfq() {
   if (!AuthService.isSignedIn()) {
     showStatus('Please sign in.', true);
@@ -390,7 +524,7 @@ async function handleSendRfq() {
 
     var message = {
       subject: outboundSubject,
-      body: { contentType: 'Text', content: getEngineeringReviewBody() },
+      body: { contentType: 'HTML', content: getEngineeringReviewBody() },
       toRecipients: [{ emailAddress: { address: ENGINEERING_TEAM_EMAIL, name: 'Engineering Team' } }],
     };
     await AuthService.graphRequest('/me/sendMail', {
@@ -424,9 +558,10 @@ async function handleSendRfq() {
     var replyUrl = '/users/' + encodeURIComponent(ENGINEERING_TEAM_EMAIL) + '/messages/' + encodeURIComponent(foundMessage.id) + '/reply';
     await AuthService.graphRequest(replyUrl, {
       method: 'POST',
-      body: JSON.stringify({ comment: getEngineeringReplyComment() }),
+      body: JSON.stringify({ message: { body: { contentType: 'HTML', content: getEngineeringReplyComment() } } }),
     });
 
+    setButtonSent('send-rfq-btn');
     showStatus('Sent to Engineering and reply received in the same thread.', false);
   } catch (error) {
     console.error('Send RFQ error:', error);
@@ -438,7 +573,6 @@ async function handleSendRfq() {
       msg = 'Access denied. In Azure, add delegated permission Mail.Send.Shared (Microsoft Graph), then sign out and sign in again. Ensure Full Access and Send As (or Send on behalf) for engineering-team@Hexa729.onmicrosoft.com in Exchange.';
     }
     showStatus(msg, true);
-  } finally {
     var btn = document.getElementById('send-rfq-btn');
     if (btn) btn.disabled = !AuthService.isSignedIn();
   }
@@ -490,7 +624,7 @@ async function handleReplyDirectToCustomer() {
 
     await AuthService.graphRequest('/me/messages/' + encodeURIComponent(originalRestId) + '/reply', {
       method: 'POST',
-      body: JSON.stringify({ comment: getCustomerClarificationComment() }),
+      body: JSON.stringify({ message: { body: { contentType: 'HTML', content: getCustomerClarificationComment() } } }),
     });
     replySent = true;
 
@@ -528,9 +662,10 @@ async function handleReplyDirectToCustomer() {
     var customer1ReplyUrl = '/users/' + encodeURIComponent(CUSTOMER_1_EMAIL) + '/messages/' + encodeURIComponent(foundInCustomer1.id) + '/reply';
     await AuthService.graphRequest(customer1ReplyUrl, {
       method: 'POST',
-      body: JSON.stringify({ comment: getCustomerReplyWithDetailsComment() }),
+      body: JSON.stringify({ message: { body: { contentType: 'HTML', content: getCustomerReplyWithDetailsComment() } } }),
     });
 
+    setButtonSent('reply-direct-to-customer-btn');
     showStatus('Reply sent and automated reply from customer received. Open that reply to send the final quote.', false);
   } catch (error) {
     console.error('Reply direct to customer error:', error);
@@ -547,7 +682,6 @@ async function handleReplyDirectToCustomer() {
     } else {
       showStatus('Reply failed: ' + msg, true);
     }
-  } finally {
     var btn = document.getElementById('reply-direct-to-customer-btn');
     if (btn) btn.disabled = !AuthService.isSignedIn();
   }
@@ -588,7 +722,7 @@ async function handleReplyToOriginal() {
 
     await AuthService.graphRequest('/me/messages/' + encodeURIComponent(originalRestId) + '/reply', {
       method: 'POST',
-      body: JSON.stringify({ comment: getCustomerClarificationComment() }),
+      body: JSON.stringify({ message: { body: { contentType: 'HTML', content: getCustomerClarificationComment() } } }),
     });
     replyToOriginalSent = true;
 
@@ -626,9 +760,10 @@ async function handleReplyToOriginal() {
     var customer1ReplyUrl = '/users/' + encodeURIComponent(CUSTOMER_1_EMAIL) + '/messages/' + encodeURIComponent(foundInCustomer1.id) + '/reply';
     await AuthService.graphRequest(customer1ReplyUrl, {
       method: 'POST',
-      body: JSON.stringify({ comment: getCustomerReplyWithDetailsComment() }),
+      body: JSON.stringify({ message: { body: { contentType: 'HTML', content: getCustomerReplyWithDetailsComment() } } }),
     });
 
+    setButtonSent('reply-to-original-btn');
     showStatus('Clarifications sent and automated reply from customer received. Open that reply to send the final quote.', false);
   } catch (error) {
     console.error('Reply to original error:', error);
@@ -645,7 +780,6 @@ async function handleReplyToOriginal() {
     } else {
       showStatus('Send failed: ' + msg, true);
     }
-  } finally {
     var btn = document.getElementById('reply-to-original-btn');
     if (btn) btn.disabled = !AuthService.isSignedIn();
   }
@@ -667,27 +801,72 @@ async function handleSendFinalReplyToCustomer() {
     return;
   }
 
+  var restId;
   try {
-    var restId = Office.context.mailbox.convertToRestId(itemId, Office.MailboxEnums.RestVersion.v2_0);
-    if (!restId) {
-      showStatus('Could not get message id.', true);
+    restId = Office.context.mailbox.convertToRestId(itemId, Office.MailboxEnums.RestVersion.v2_0);
+  } catch (e) {
+    showStatus('Could not get message id.', true);
+    return;
+  }
+  if (!restId) {
+    showStatus('Could not get message id.', true);
+    return;
+  }
+
+  var attachments = typeof ATTACHMENTS !== 'undefined' ? ATTACHMENTS : null;
+  if (!attachments || !attachments.pdf || !attachments.xlsx) {
+    showStatus('Attachment data not loaded. Ensure /data/attachments.js is available.', true);
+    return;
+  }
+
+  var btn = document.getElementById('send-final-reply-btn');
+  if (btn) btn.disabled = true;
+  showStatus('Creating reply and adding attachments...', false);
+
+  try {
+    var createReplyResult = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(restId) + '/createReply', {
+      method: 'POST',
+    });
+    var draftId = createReplyResult && createReplyResult.id;
+    if (!draftId) {
+      showStatus('Could not create reply draft.', true);
       return;
     }
 
-    showStatus('Sending final quote...', false);
-    var btn = document.getElementById('send-final-reply-btn');
-    if (btn) btn.disabled = true;
-
-    await AuthService.graphRequest('/me/messages/' + encodeURIComponent(restId) + '/reply', {
+    await AuthService.graphRequest('/me/messages/' + encodeURIComponent(draftId) + '/attachments', {
       method: 'POST',
-      body: JSON.stringify({ comment: getFinalQuoteComment() }),
+      body: JSON.stringify({
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: attachments.pdf.name,
+        contentType: attachments.pdf.contentType,
+        contentBytes: attachments.pdf.contentBytes,
+      }),
+    });
+    await AuthService.graphRequest('/me/messages/' + encodeURIComponent(draftId) + '/attachments', {
+      method: 'POST',
+      body: JSON.stringify({
+        '@odata.type': '#microsoft.graph.fileAttachment',
+        name: attachments.xlsx.name,
+        contentType: attachments.xlsx.contentType,
+        contentBytes: attachments.xlsx.contentBytes,
+      }),
     });
 
-    showStatus('Final quote sent to customer.', false);
+    var htmlBody = getFinalQuoteComment();
+    await AuthService.graphRequest('/me/messages/' + encodeURIComponent(draftId), {
+      method: 'PATCH',
+      body: JSON.stringify({ body: { contentType: 'HTML', content: htmlBody } }),
+    });
+
+    await AuthService.graphRequest('/me/messages/' + encodeURIComponent(draftId) + '/send', {
+      method: 'POST',
+    });
+
+    setButtonSent('send-final-reply-btn');
+    showStatus('Final quote sent to customer with PDF and XLSX attachments.', false);
   } catch (error) {
     console.error('Send final reply error:', error);
     showStatus('Final quote failed: ' + (error && error.message ? error.message : String(error)), true);
-  } finally {
     var finalBtn = document.getElementById('send-final-reply-btn');
     if (finalBtn) finalBtn.disabled = !AuthService.isSignedIn();
   }

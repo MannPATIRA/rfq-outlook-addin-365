@@ -59,6 +59,11 @@ app.get('/data/email-templates.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/data/email-templates.js'));
 });
 
+app.get('/data/attachments.js', (req, res) => {
+  res.type('application/javascript');
+  res.sendFile(path.join(__dirname, 'src/data/attachments.js'));
+});
+
 app.get('/styles.css', (req, res) => {
   res.type('text/css');
   res.sendFile(path.join(__dirname, 'src/taskpane/styles.css'));

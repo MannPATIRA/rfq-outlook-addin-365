@@ -61,21 +61,17 @@ const RFQ_DATA = {
   ],
 
   missingDetails: [
-    { id: 'm1', field: 'Reflectivity (%)', importance: 'critical', note: 'Nominal reflectivity not specified; only tolerances given.' },
-    { id: 'm2', field: 'FWHM tolerance (nm)', importance: 'critical', note: 'Exact FWHM tolerance requirement to be confirmed.' },
-    { id: 'm3', field: 'SLSR minimum requirement (dB)', importance: 'critical', note: 'Sheet shows 8.0 dB nominal; confirm if this is the minimum required.' },
-    { id: 'm4', field: 'Calibration temperature range', importance: 'high', note: 'Calibration from/to temperatures not specified.' },
-    { id: 'm5', field: 'Delivery timeline preference', importance: 'high', note: 'Required delivery date or lead time not specified.' },
+    { id: 'm1', field: 'Reflectivity (%)', importance: 'critical', note: 'Required reflectivity not specified – needed to set FBG writing parameters (typical 10–90%).' },
+    { id: 'm2', field: 'Calibration from/to (°C)', importance: 'critical', note: 'Customer states operating range but not calibration data points required.' },
+    { id: 'm3', field: 'Delivery lead time', importance: 'high', note: 'No delivery date or lead time given – affects production scheduling.' },
   ],
 
   questionsToAsk: [
-    'What reflectivity percentage do you require for the FBGs (typical range 10–99%)?',
-    'What is your acceptable FWHM tolerance (we offer nominal 0.09 nm ± 0.02 nm)?',
-    'Can you confirm the minimum SLSR requirement (we quote 8.0 dB nominal)?',
-    'What calibration temperature range do you need (from/to °C) for temperature sensing?',
-    'What is your required delivery date or lead time for the 10 units?',
+    'Please confirm that 8.0 dB SLSR is an acceptable minimum – your RFQ lists "nominal" which may imply a different acceptance criterion.',
+    'For the calibration certificate, do you require 5-point temperature data (standard) or higher-resolution 10-point characterisation?',
   ],
 };
+
 
 if (typeof window !== 'undefined') {
   window.RFQ_DATA = RFQ_DATA;
