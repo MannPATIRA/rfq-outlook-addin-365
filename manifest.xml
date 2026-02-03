@@ -6,11 +6,11 @@
            xsi:type="MailApp">
 
   <Id>f8e2d1a0-6b4c-4e9f-a3d7-1c5b8e2f9a40</Id>
-  <Version>1.0.0.1</Version>
+  <Version>1.0.0.2</Version>
   <ProviderName>HEXA ADD-IN</ProviderName>
   <DefaultLocale>en-US</DefaultLocale>
-  <DisplayName DefaultValue="My Outlook Add-in"/>
-  <Description DefaultValue="Minimal Outlook add-in."/>
+  <DisplayName DefaultValue="Hexa RFQ Copilot"/>
+  <Description DefaultValue="Process RFQs automatically with Hexa RFQ Copilot."/>
   <IconUrl DefaultValue="https://rfq-outlook-addin-365.vercel.app/assets/icon-64.png"/>
   <HighResolutionIconUrl DefaultValue="https://rfq-outlook-addin-365.vercel.app/assets/icon-128.png"/>
   <SupportUrl DefaultValue="https://rfq-outlook-addin-365.vercel.app"/>
