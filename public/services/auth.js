@@ -21,6 +21,7 @@ const AuthService = {
     'Mail.Send',
     'Mail.Send.Shared',
     'Mail.Read.Shared',
+    'MailboxSettings.ReadWrite',  // Required for creating/managing email categories
   ],
 
   msalInstance: null,

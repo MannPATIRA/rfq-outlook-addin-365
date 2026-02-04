@@ -15,27 +15,27 @@ const STORAGE_KEY = 'addin_original_message_map';
 const STORAGE_MAX_ENTRIES = 50;
 
 // RFQ Category definitions for email tagging
+// Color values must be PascalCase for Microsoft Graph API
 const RFQ_CATEGORIES = {
-  MISSING_DETAILS: { name: 'RFQ - Missing Details', color: 'preset0' },      // Red
-  PENDING_ENGINEERING: { name: 'Pending Engineering', color: 'preset1' },    // Orange
-  CLARIFICATION: { name: 'RFQ Clarification', color: 'preset7' },            // Blue
-  DETAILS_COMPLETE: { name: 'RFQ - Details Complete', color: 'preset4' }     // Green
+  MISSING_DETAILS: { name: 'RFQ - Missing Details', color: 'Preset0' },      // Red
+  PENDING_ENGINEERING: { name: 'Pending Engineering', color: 'Preset1' },    // Orange
+  CLARIFICATION: { name: 'RFQ Clarification', color: 'Preset7' },            // Blue
+  DETAILS_COMPLETE: { name: 'RFQ - Details Complete', color: 'Preset4' }     // Green
 };
 
 // CategoryService for managing email categories via Graph API
 var CategoryService = {
   categoriesInitialized: false,
-  lastCategorizedMessageId: null,
-  rfqCategoryNames: null,
+  // Track which messages have which category to avoid redundant API calls
+  messageCategoryCache: {},
 
   getRfqCategoryNames: function() {
-    if (!this.rfqCategoryNames) {
-      this.rfqCategoryNames = [];
-      for (var key in RFQ_CATEGORIES) {
-        this.rfqCategoryNames.push(RFQ_CATEGORIES[key].name);
-      }
-    }
-    return this.rfqCategoryNames;
+    return [
+      RFQ_CATEGORIES.MISSING_DETAILS.name,
+      RFQ_CATEGORIES.PENDING_ENGINEERING.name,
+      RFQ_CATEGORIES.CLARIFICATION.name,
+      RFQ_CATEGORIES.DETAILS_COMPLETE.name
+    ];
   },
 
   async ensureCategoriesExist() {
@@ -67,8 +67,8 @@ var CategoryService = {
           } catch (createErr) {
             console.warn('Could not create category ' + cat.name + ':', createErr);
           }
-        } else if (existing.color !== cat.color) {
-          // Category exists but has wrong color - update it
+        } else {
+          // Category exists - always try to update color to ensure it's correct
           try {
             await AuthService.graphRequest('/me/outlook/masterCategories/' + encodeURIComponent(existing.id), {
               method: 'PATCH',
@@ -76,9 +76,9 @@ var CategoryService = {
                 color: cat.color
               })
             });
-            console.log('Updated category color:', cat.name, 'to', cat.color);
+            console.log('Ensured category color:', cat.name, '=', cat.color);
           } catch (updateErr) {
-            console.warn('Could not update category color ' + cat.name + ':', updateErr);
+            // Ignore errors - color might already be correct
           }
         }
       }
@@ -93,98 +93,141 @@ var CategoryService = {
     if (!messageId || !categoryName) return;
     if (!AuthService.isSignedIn()) return;
     
-    // Avoid re-categorizing the same message repeatedly
-    var cacheKey = messageId + ':' + categoryName;
-    if (this.lastCategorizedMessageId === cacheKey) return;
+    // Check cache - only skip if this exact message already has this exact category
+    if (this.messageCategoryCache[messageId] === categoryName) {
+      return;
+    }
     
     try {
-      // First get current categories to preserve non-RFQ categories
-      var msgData = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(messageId) + '?$select=categories');
-      var currentCategories = (msgData && msgData.categories) || [];
       var rfqNames = this.getRfqCategoryNames();
       
-      // Filter out any existing RFQ categories, keep others
-      var newCategories = currentCategories.filter(function(c) {
-        return rfqNames.indexOf(c) === -1;
-      });
+      // Get current categories on the message
+      var msgData = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(messageId) + '?$select=categories');
+      var currentCategories = (msgData && msgData.categories) || [];
+      
+      console.log('Current categories on message:', currentCategories);
+      
+      // Remove ALL RFQ categories from the list
+      var filteredCategories = [];
+      for (var i = 0; i < currentCategories.length; i++) {
+        var cat = currentCategories[i];
+        var isRfqCategory = false;
+        for (var j = 0; j < rfqNames.length; j++) {
+          if (cat === rfqNames[j]) {
+            isRfqCategory = true;
+            break;
+          }
+        }
+        if (!isRfqCategory) {
+          filteredCategories.push(cat);
+        }
+      }
       
       // Add the new RFQ category
-      newCategories.push(categoryName);
+      filteredCategories.push(categoryName);
+      
+      console.log('Setting categories to:', filteredCategories);
       
       await AuthService.graphRequest('/me/messages/' + encodeURIComponent(messageId), {
         method: 'PATCH',
-        body: JSON.stringify({ categories: newCategories })
+        body: JSON.stringify({ categories: filteredCategories })
       });
-      this.lastCategorizedMessageId = cacheKey;
-      console.log('Set category on message:', categoryName);
+      
+      // Update cache
+      this.messageCategoryCache[messageId] = categoryName;
+      console.log('Successfully set category:', categoryName, 'on message:', messageId.substring(0, 20) + '...');
     } catch (e) {
-      console.warn('Could not set category:', e);
+      console.error('Could not set category:', e);
     }
   },
 
-  async removeAllRfqCategories(messageId) {
-    if (!messageId) return;
-    if (!AuthService.isSignedIn()) return;
-    
-    try {
-      // Get current categories
-      var msgData = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(messageId) + '?$select=categories');
-      var currentCategories = (msgData && msgData.categories) || [];
-      var rfqNames = this.getRfqCategoryNames();
-      
-      // Filter out RFQ categories, keep others
-      var newCategories = currentCategories.filter(function(c) {
-        return rfqNames.indexOf(c) === -1;
-      });
-      
-      await AuthService.graphRequest('/me/messages/' + encodeURIComponent(messageId), {
-        method: 'PATCH',
-        body: JSON.stringify({ categories: newCategories })
-      });
-    } catch (e) {
-      console.warn('Could not remove categories:', e);
+  // Clear cache for a specific message (call when message state changes)
+  clearCache: function(messageId) {
+    if (messageId) {
+      delete this.messageCategoryCache[messageId];
     }
   }
 };
 
 var currentOriginalMessageRestId = null;
-var lastUpdatedConversationId = null;
 
 // Helper function to find and update the original customer email in a conversation thread
-async function updateOriginalCustomerEmailCategory(currentMessageId, normalizedSubject) {
+async function updateOriginalCustomerEmailCategory(currentMessageId) {
   try {
     // Get conversation ID of current message
-    var currentMsg = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(currentMessageId) + '?$select=conversationId');
-    if (!currentMsg || !currentMsg.conversationId) return;
+    var currentMsg = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(currentMessageId) + '?$select=conversationId,conversationIndex');
+    if (!currentMsg || !currentMsg.conversationId) {
+      console.error('Could not get conversation ID');
+      return;
+    }
     
     var conversationId = currentMsg.conversationId;
+    console.log('Looking for original message in conversation:', conversationId);
     
-    // Avoid updating the same conversation repeatedly
-    if (lastUpdatedConversationId === conversationId) return;
-    lastUpdatedConversationId = conversationId;
-    
-    // Find all messages in this conversation from the customer
-    var searchUrl = '/me/messages?$filter=conversationId eq \'' + conversationId + '\'&$select=id,from,subject,receivedDateTime&$orderby=receivedDateTime asc&$top=20';
+    // Find all messages in this conversation, ordered by date (oldest first)
+    var searchUrl = '/me/messages?$filter=conversationId eq \'' + conversationId + '\'&$select=id,from,subject,receivedDateTime,categories&$orderby=receivedDateTime asc&$top=50';
     var result = await AuthService.graphRequest(searchUrl);
     var messages = (result && result.value) || [];
     
-    // Find the original message (first message from customer that's not a reply)
+    console.log('Found', messages.length, 'messages in conversation');
+    
+    // Find ALL messages from customer that have RFQ - Missing Details and update them
+    var rfqNames = CategoryService.getRfqCategoryNames();
+    
     for (var i = 0; i < messages.length; i++) {
       var msg = messages[i];
       var fromAddr = msg.from && msg.from.emailAddress && msg.from.emailAddress.address;
-      if (fromAddr && fromAddr.toLowerCase() === CUSTOMER_1_EMAIL.toLowerCase()) {
-        var msgSubject = (msg.subject || '').toLowerCase();
-        // Original message won't have "Re:" prefix
-        if (msgSubject.indexOf('re:') !== 0) {
-          // This is likely the original customer RFQ - update its category
-          await CategoryService.setCategory(msg.id, RFQ_CATEGORIES.DETAILS_COMPLETE.name);
-          console.log('Updated original customer email category to Details Complete');
-          break;
+      var fromLower = (fromAddr || '').toLowerCase();
+      var customerLower = CUSTOMER_1_EMAIL.toLowerCase();
+      
+      // Check if this message is from the customer
+      if (fromLower === customerLower) {
+        var msgSubject = (msg.subject || '').trim().toLowerCase();
+        var currentCategories = msg.categories || [];
+        
+        console.log('Customer message found:', msgSubject, 'categories:', currentCategories);
+        
+        // Check if this message has "RFQ - Missing Details" category
+        var hasMissingDetails = false;
+        for (var j = 0; j < currentCategories.length; j++) {
+          if (currentCategories[j] === RFQ_CATEGORIES.MISSING_DETAILS.name) {
+            hasMissingDetails = true;
+            break;
+          }
+        }
+        
+        // If it has Missing Details OR it's the original (no Re: prefix), update it
+        if (hasMissingDetails || msgSubject.indexOf('re:') !== 0) {
+          console.log('Updating message to Details Complete:', msg.id.substring(0, 30));
+          
+          // Build new categories list - remove all RFQ categories, add Details Complete
+          var newCategories = [];
+          for (var k = 0; k < currentCategories.length; k++) {
+            var cat = currentCategories[k];
+            var isRfq = false;
+            for (var l = 0; l < rfqNames.length; l++) {
+              if (cat === rfqNames[l]) {
+                isRfq = true;
+                break;
+              }
+            }
+            if (!isRfq) {
+              newCategories.push(cat);
+            }
+          }
+          newCategories.push(RFQ_CATEGORIES.DETAILS_COMPLETE.name);
+          
+          // Directly PATCH the message (bypass CategoryService cache)
+          await AuthService.graphRequest('/me/messages/' + encodeURIComponent(msg.id), {
+            method: 'PATCH',
+            body: JSON.stringify({ categories: newCategories })
+          });
+          console.log('Successfully updated original customer email to Details Complete');
         }
       }
     }
   } catch (e) {
-    console.warn('Could not update original customer email category:', e);
+    console.error('Could not update original customer email category:', e);
   }
 }
 
@@ -591,11 +634,11 @@ async function detectEmailContext() {
     if (statusEl) { statusEl.textContent = ''; statusEl.classList.remove('error', 'success'); }
     // Apply "RFQ - Details Complete" category (Green) to customer reply with details
     if (currentMessageRestId && AuthService.isSignedIn()) {
-      CategoryService.setCategory(currentMessageRestId, RFQ_CATEGORIES.DETAILS_COMPLETE.name);
+      // Set category on the current reply
+      await CategoryService.setCategory(currentMessageRestId, RFQ_CATEGORIES.DETAILS_COMPLETE.name);
       
       // Also update the original customer email in the thread to remove "Missing Details"
-      // Find original message by conversation ID
-      updateOriginalCustomerEmailCategory(currentMessageRestId, normalizedSubject);
+      await updateOriginalCustomerEmailCategory(currentMessageRestId);
     }
     return;
   }
