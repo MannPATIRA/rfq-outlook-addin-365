@@ -155,7 +155,7 @@ var currentOriginalMessageRestId = null;
 async function updateOriginalCustomerEmailCategory(currentMessageId) {
   try {
     // Get conversation ID of current message
-    var currentMsg = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(currentMessageId) + '?$select=conversationId,conversationIndex');
+    var currentMsg = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(currentMessageId) + '?$select=conversationId');
     if (!currentMsg || !currentMsg.conversationId) {
       console.error('Could not get conversation ID');
       return;
@@ -164,8 +164,8 @@ async function updateOriginalCustomerEmailCategory(currentMessageId) {
     var conversationId = currentMsg.conversationId;
     console.log('Looking for original message in conversation:', conversationId);
     
-    // Find all messages in this conversation, ordered by date (oldest first)
-    var searchUrl = '/me/messages?$filter=conversationId eq \'' + conversationId + '\'&$select=id,from,subject,receivedDateTime,categories&$orderby=receivedDateTime asc&$top=50';
+    // Find all messages in this conversation (NO orderby - API doesn't support it with filter)
+    var searchUrl = '/me/messages?$filter=conversationId eq \'' + conversationId + '\'&$select=id,from,subject,receivedDateTime,categories&$top=50';
     var result = await AuthService.graphRequest(searchUrl);
     var messages = (result && result.value) || [];
     
@@ -173,12 +173,12 @@ async function updateOriginalCustomerEmailCategory(currentMessageId) {
     
     // Find ALL messages from customer that have RFQ - Missing Details and update them
     var rfqNames = CategoryService.getRfqCategoryNames();
+    var customerLower = CUSTOMER_1_EMAIL.toLowerCase();
     
     for (var i = 0; i < messages.length; i++) {
       var msg = messages[i];
       var fromAddr = msg.from && msg.from.emailAddress && msg.from.emailAddress.address;
       var fromLower = (fromAddr || '').toLowerCase();
-      var customerLower = CUSTOMER_1_EMAIL.toLowerCase();
       
       // Check if this message is from the customer
       if (fromLower === customerLower) {
@@ -196,8 +196,8 @@ async function updateOriginalCustomerEmailCategory(currentMessageId) {
           }
         }
         
-        // If it has Missing Details OR it's the original (no Re: prefix), update it
-        if (hasMissingDetails || msgSubject.indexOf('re:') !== 0) {
+        // If it has Missing Details, update it to Details Complete
+        if (hasMissingDetails) {
           console.log('Updating message to Details Complete:', msg.id.substring(0, 30));
           
           // Build new categories list - remove all RFQ categories, add Details Complete
@@ -217,12 +217,12 @@ async function updateOriginalCustomerEmailCategory(currentMessageId) {
           }
           newCategories.push(RFQ_CATEGORIES.DETAILS_COMPLETE.name);
           
-          // Directly PATCH the message (bypass CategoryService cache)
+          // Directly PATCH the message
           await AuthService.graphRequest('/me/messages/' + encodeURIComponent(msg.id), {
             method: 'PATCH',
             body: JSON.stringify({ categories: newCategories })
           });
-          console.log('Successfully updated original customer email to Details Complete');
+          console.log('Successfully updated customer email from Missing Details to Details Complete');
         }
       }
     }
