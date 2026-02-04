@@ -94,8 +94,8 @@ const EMAIL_TEMPLATES = {
   <p style="margin: 0 0 16px 0;">Dear Customer,</p>
   <p style="margin: 0 0 16px 0;">Thank you for your confirmation. Please find attached:</p>
   <ul style="margin: 0 0 16px 0; padding-left: 20px;">
-    <li style="margin-bottom: 4px;">Specification Sheet – 41260018 NRL.xlsx</li>
-    <li style="margin-bottom: 4px;">Quote Document – 41260018 NRL.pdf</li>
+    <li style="margin-bottom: 4px;">Specification Sheet – 412600xx.xlsx</li>
+    <li style="margin-bottom: 4px;">Quote Document – 412600xx.pdf</li>
   </ul>
   <h3 style="color: #1e3a5f; font-size: 14px; margin: 16px 0 8px 0;">Summary</h3>
   <ul style="margin: 0 0 16px 0; padding-left: 20px;">

@@ -64,6 +64,20 @@ app.get('/data/attachments.js', (req, res) => {
   res.sendFile(path.join(__dirname, 'src/data/attachments.js'));
 });
 
+const templatesDir = path.join(__dirname, 'src/assets/templates');
+app.get('/api/attachments/pdf', (req, res) => {
+  const filePath = path.join(templatesDir, '412600xx.pdf');
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: '412600xx.pdf not found' });
+  const buf = fs.readFileSync(filePath);
+  res.json({ name: '412600xx.pdf', contentType: 'application/pdf', contentBytes: buf.toString('base64') });
+});
+app.get('/api/attachments/xlsx', (req, res) => {
+  const filePath = path.join(templatesDir, '412600xx.xlsx');
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: '412600xx.xlsx not found' });
+  const buf = fs.readFileSync(filePath);
+  res.json({ name: '412600xx.xlsx', contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', contentBytes: buf.toString('base64') });
+});
+
 app.get('/styles.css', (req, res) => {
   res.type('text/css');
   res.sendFile(path.join(__dirname, 'src/taskpane/styles.css'));

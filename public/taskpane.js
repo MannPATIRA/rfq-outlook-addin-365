@@ -14,7 +14,179 @@ const CUSTOMER_1_FIND_RETRY_DELAY_MS = 2000;
 const STORAGE_KEY = 'addin_original_message_map';
 const STORAGE_MAX_ENTRIES = 50;
 
+// RFQ Category definitions for email tagging
+const RFQ_CATEGORIES = {
+  MISSING_DETAILS: { name: 'RFQ - Missing Details', color: 'preset0' },      // Red
+  PENDING_ENGINEERING: { name: 'Pending Engineering', color: 'preset1' },    // Orange
+  CLARIFICATION: { name: 'RFQ Clarification', color: 'preset7' },            // Blue
+  DETAILS_COMPLETE: { name: 'RFQ - Details Complete', color: 'preset4' }     // Green
+};
+
+// CategoryService for managing email categories via Graph API
+var CategoryService = {
+  categoriesInitialized: false,
+  lastCategorizedMessageId: null,
+  rfqCategoryNames: null,
+
+  getRfqCategoryNames: function() {
+    if (!this.rfqCategoryNames) {
+      this.rfqCategoryNames = [];
+      for (var key in RFQ_CATEGORIES) {
+        this.rfqCategoryNames.push(RFQ_CATEGORIES[key].name);
+      }
+    }
+    return this.rfqCategoryNames;
+  },
+
+  async ensureCategoriesExist() {
+    if (this.categoriesInitialized) return;
+    if (!AuthService.isSignedIn()) return;
+    
+    try {
+      var existingCategories = await AuthService.graphRequest('/me/outlook/masterCategories');
+      var existingMap = {};
+      (existingCategories.value || []).forEach(function(c) {
+        existingMap[c.displayName] = c;
+      });
+      
+      for (var key in RFQ_CATEGORIES) {
+        var cat = RFQ_CATEGORIES[key];
+        var existing = existingMap[cat.name];
+        
+        if (!existing) {
+          // Category doesn't exist - create it
+          try {
+            await AuthService.graphRequest('/me/outlook/masterCategories', {
+              method: 'POST',
+              body: JSON.stringify({
+                displayName: cat.name,
+                color: cat.color
+              })
+            });
+            console.log('Created category:', cat.name, 'with color:', cat.color);
+          } catch (createErr) {
+            console.warn('Could not create category ' + cat.name + ':', createErr);
+          }
+        } else if (existing.color !== cat.color) {
+          // Category exists but has wrong color - update it
+          try {
+            await AuthService.graphRequest('/me/outlook/masterCategories/' + encodeURIComponent(existing.id), {
+              method: 'PATCH',
+              body: JSON.stringify({
+                color: cat.color
+              })
+            });
+            console.log('Updated category color:', cat.name, 'to', cat.color);
+          } catch (updateErr) {
+            console.warn('Could not update category color ' + cat.name + ':', updateErr);
+          }
+        }
+      }
+      this.categoriesInitialized = true;
+      console.log('RFQ categories initialized');
+    } catch (e) {
+      console.warn('Could not initialize categories:', e);
+    }
+  },
+
+  async setCategory(messageId, categoryName) {
+    if (!messageId || !categoryName) return;
+    if (!AuthService.isSignedIn()) return;
+    
+    // Avoid re-categorizing the same message repeatedly
+    var cacheKey = messageId + ':' + categoryName;
+    if (this.lastCategorizedMessageId === cacheKey) return;
+    
+    try {
+      // First get current categories to preserve non-RFQ categories
+      var msgData = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(messageId) + '?$select=categories');
+      var currentCategories = (msgData && msgData.categories) || [];
+      var rfqNames = this.getRfqCategoryNames();
+      
+      // Filter out any existing RFQ categories, keep others
+      var newCategories = currentCategories.filter(function(c) {
+        return rfqNames.indexOf(c) === -1;
+      });
+      
+      // Add the new RFQ category
+      newCategories.push(categoryName);
+      
+      await AuthService.graphRequest('/me/messages/' + encodeURIComponent(messageId), {
+        method: 'PATCH',
+        body: JSON.stringify({ categories: newCategories })
+      });
+      this.lastCategorizedMessageId = cacheKey;
+      console.log('Set category on message:', categoryName);
+    } catch (e) {
+      console.warn('Could not set category:', e);
+    }
+  },
+
+  async removeAllRfqCategories(messageId) {
+    if (!messageId) return;
+    if (!AuthService.isSignedIn()) return;
+    
+    try {
+      // Get current categories
+      var msgData = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(messageId) + '?$select=categories');
+      var currentCategories = (msgData && msgData.categories) || [];
+      var rfqNames = this.getRfqCategoryNames();
+      
+      // Filter out RFQ categories, keep others
+      var newCategories = currentCategories.filter(function(c) {
+        return rfqNames.indexOf(c) === -1;
+      });
+      
+      await AuthService.graphRequest('/me/messages/' + encodeURIComponent(messageId), {
+        method: 'PATCH',
+        body: JSON.stringify({ categories: newCategories })
+      });
+    } catch (e) {
+      console.warn('Could not remove categories:', e);
+    }
+  }
+};
+
 var currentOriginalMessageRestId = null;
+var lastUpdatedConversationId = null;
+
+// Helper function to find and update the original customer email in a conversation thread
+async function updateOriginalCustomerEmailCategory(currentMessageId, normalizedSubject) {
+  try {
+    // Get conversation ID of current message
+    var currentMsg = await AuthService.graphRequest('/me/messages/' + encodeURIComponent(currentMessageId) + '?$select=conversationId');
+    if (!currentMsg || !currentMsg.conversationId) return;
+    
+    var conversationId = currentMsg.conversationId;
+    
+    // Avoid updating the same conversation repeatedly
+    if (lastUpdatedConversationId === conversationId) return;
+    lastUpdatedConversationId = conversationId;
+    
+    // Find all messages in this conversation from the customer
+    var searchUrl = '/me/messages?$filter=conversationId eq \'' + conversationId + '\'&$select=id,from,subject,receivedDateTime&$orderby=receivedDateTime asc&$top=20';
+    var result = await AuthService.graphRequest(searchUrl);
+    var messages = (result && result.value) || [];
+    
+    // Find the original message (first message from customer that's not a reply)
+    for (var i = 0; i < messages.length; i++) {
+      var msg = messages[i];
+      var fromAddr = msg.from && msg.from.emailAddress && msg.from.emailAddress.address;
+      if (fromAddr && fromAddr.toLowerCase() === CUSTOMER_1_EMAIL.toLowerCase()) {
+        var msgSubject = (msg.subject || '').toLowerCase();
+        // Original message won't have "Re:" prefix
+        if (msgSubject.indexOf('re:') !== 0) {
+          // This is likely the original customer RFQ - update its category
+          await CategoryService.setCategory(msg.id, RFQ_CATEGORIES.DETAILS_COMPLETE.name);
+          console.log('Updated original customer email category to Details Complete');
+          break;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Could not update original customer email category:', e);
+  }
+}
 
 function makeUniqueSubject() {
   return OUTBOUND_SUBJECT_PREFIX + ' – ' + new Date().toISOString();
@@ -62,6 +234,8 @@ async function initializeApp() {
   await initializeAuth();
   updateAuthUI();
   updateSendButtonState();
+  // Initialize RFQ email categories
+  await CategoryService.ensureCategoriesExist();
   renderInitialRfqFromPreset();
   renderEngineeringAnswersFromPreset();
   renderQuoteSummary();
@@ -319,8 +493,8 @@ function setupCollapsibleSections() {
 
 function setupAttachmentPreviewButtons() {
   var baseUrl = typeof window !== 'undefined' && window.location && window.location.origin ? window.location.origin : '';
-  var pdfUrl = baseUrl + '/assets/templates/quote-template.pdf';
-  var xlsxUrl = baseUrl + '/assets/templates/nrl-template.xlsx';
+  var pdfUrl = baseUrl + '/assets/templates/412600xx.pdf';
+  var xlsxUrl = baseUrl + '/assets/templates/412600xx.xlsx';
   document.getElementById('view-pdf-btn')?.addEventListener('click', function () {
     window.open(pdfUrl, '_blank');
   });
@@ -353,7 +527,7 @@ function showContext(contextId) {
   });
 }
 
-function detectEmailContext() {
+async function detectEmailContext() {
   var statusEl = document.getElementById('status-message');
   currentOriginalMessageRestId = null;
 
@@ -382,6 +556,19 @@ function detectEmailContext() {
   var isReplyFromEngineering = isFromEngineering && normalizedSubject.indexOf(OUTBOUND_SUBJECT_PREFIX) === 0;
   var isReplyFromCustomer1 = isFromCustomer1 && subjectLower.indexOf('re:') === 0;
 
+  // Get REST ID for current message to apply categories
+  var currentMessageRestId = null;
+  if (item.itemId && Office.context.mailbox.convertToRestId) {
+    try {
+      currentMessageRestId = Office.context.mailbox.convertToRestId(
+        item.itemId,
+        Office.MailboxEnums.RestVersion.v2_0
+      );
+    } catch (e) {
+      console.warn('Could not convert item ID to REST ID:', e);
+    }
+  }
+
   if (isReplyFromEngineering) {
     var map = getOriginalMessageMap();
     var originalRestId = map[normalizedSubject];
@@ -392,18 +579,34 @@ function detectEmailContext() {
       statusEl.textContent = 'Original RFQ message not found for this thread.';
       statusEl.classList.add('error');
     }
+    // Apply "RFQ Clarification" category (Blue) to engineering reply
+    if (currentMessageRestId && AuthService.isSignedIn()) {
+      CategoryService.setCategory(currentMessageRestId, RFQ_CATEGORIES.CLARIFICATION.name);
+    }
     return;
   }
 
   if (isReplyFromCustomer1) {
     showContext('context-customer-reply-details');
     if (statusEl) { statusEl.textContent = ''; statusEl.classList.remove('error', 'success'); }
+    // Apply "RFQ - Details Complete" category (Green) to customer reply with details
+    if (currentMessageRestId && AuthService.isSignedIn()) {
+      CategoryService.setCategory(currentMessageRestId, RFQ_CATEGORIES.DETAILS_COMPLETE.name);
+      
+      // Also update the original customer email in the thread to remove "Missing Details"
+      // Find original message by conversation ID
+      updateOriginalCustomerEmailCategory(currentMessageRestId, normalizedSubject);
+    }
     return;
   }
 
   if (isFromCustomer1) {
     showContext('context-initial-rfq');
     if (statusEl) { statusEl.textContent = ''; statusEl.classList.remove('error', 'success'); }
+    // Apply "RFQ - Missing Details" category (Red) to initial customer RFQ
+    if (currentMessageRestId && AuthService.isSignedIn()) {
+      CategoryService.setCategory(currentMessageRestId, RFQ_CATEGORIES.MISSING_DETAILS.name);
+    }
     return;
   }
 
@@ -505,12 +708,16 @@ async function handleSendRfq() {
   var userEmail = user ? user.email : '';
 
   var outboundSubject = makeUniqueSubject();
+  var originalMessageRestId = null;
   if (Office.context.mailbox && Office.context.mailbox.item) {
     try {
       var itemId = Office.context.mailbox.item.itemId;
       if (itemId && Office.context.mailbox.convertToRestId) {
         var restId = Office.context.mailbox.convertToRestId(itemId, Office.MailboxEnums.RestVersion.v2_0);
-        if (restId) saveOriginalForSubject(outboundSubject, restId);
+        if (restId) {
+          saveOriginalForSubject(outboundSubject, restId);
+          originalMessageRestId = restId;
+        }
       }
     } catch (e) {
       console.warn('Could not store original message id:', e);
@@ -560,6 +767,11 @@ async function handleSendRfq() {
       method: 'POST',
       body: JSON.stringify({ message: { body: { contentType: 'HTML', content: getEngineeringReplyComment() } } }),
     });
+
+    // Update original email category to "Pending Engineering" (Orange)
+    if (originalMessageRestId) {
+      await CategoryService.setCategory(originalMessageRestId, RFQ_CATEGORIES.PENDING_ENGINEERING.name);
+    }
 
     setButtonSent('send-rfq-btn');
     showStatus('Sent to Engineering and reply received in the same thread.', false);
