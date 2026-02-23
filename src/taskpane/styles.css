@@ -564,6 +564,10 @@ h1, h2, h3, h4, h5, h6 {
   margin-bottom: 0;
 }
 
+.attachment-list .btn-link {
+  margin-left: 12px;
+}
+
 .attachment-icon {
   width: 52px;
   height: 52px;
