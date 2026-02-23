@@ -496,7 +496,8 @@ h1, h2, h3, h4, h5, h6 {
 .quote-line {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  gap: 16px;
   padding: 8px 0;
   font-size: var(--text-base);
   border-bottom: 1px solid rgba(0,0,0,0.05);
@@ -507,15 +508,20 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .quote-line span:first-child {
+  flex-shrink: 0;
   color: var(--text-secondary);
   font-weight: 450;
   letter-spacing: 0.005em;
 }
 
 .quote-line span:last-child {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
   color: var(--text-main);
   text-align: right;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .quote-total {
