@@ -26,7 +26,7 @@ const TENANT_ID = process.env.AZURE_TENANT_ID || 'hexa729.onmicrosoft.com';
 const FROM_EMAIL = 'customer-1@hexa729.onmicrosoft.com';
 const TO_EMAIL = process.env.TO_EMAIL || 'mannpatira@hexa729.onmicrosoft.com';
 
-const SUBJECT = 'RFQ for 2 FBG Arrays – NRL – ' + new Date().toISOString().slice(0, 19).replace('T', ' ');
+const SUBJECT = 'RFQ for 2 FBG Arrays';
 
 const BODY = `Dear Sir or Madam,
 
