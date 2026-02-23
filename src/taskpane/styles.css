@@ -1,22 +1,22 @@
-/* RFQ Copilot – Clean, Modern, Professional Theme */
+/* RFQ Copilot – Professional Typography System */
 
 :root {
   /* Core Colors */
-  --primary: #1e3a5f;       /* Navy Blue */
+  --primary: #1e3a5f;
   --primary-dark: #112240;
-  --primary-light: #e8f0f8; /* Very light blue for subtle accents only */
-  --accent: #2563eb;        /* Brighter blue for interactive elements */
-  
+  --primary-light: #e8f0f8;
+  --accent: #2563eb;
+
   /* Neutrals */
   --bg-body: #ffffff;
-  --bg-subtle: #f9fafb;     /* Light gray for separation */
+  --bg-subtle: #f9fafb;
   --surface: #ffffff;
-  
+
   /* Text */
-  --text-main: #111827;     /* Almost black */
+  --text-main: #111827;
   --text-secondary: #4b5563;
   --text-tertiary: #9ca3af;
-  
+
   /* Status */
   --success-bg: #ecfdf5;
   --success-text: #047857;
@@ -30,13 +30,21 @@
   --border-focus: #2563eb;
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  
+
   /* Spacing & Radius */
   --radius-md: 0;
   --radius-lg: 0;
-  
+
   /* Typography */
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* Type Scale */
+  --text-2xs: 0.625rem;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.75rem;
+  --text-base: 0.875rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1rem;
 }
 
 * {
@@ -47,12 +55,14 @@ body {
   margin: 0;
   padding: 0;
   font-family: var(--font-sans);
-  font-size: 16px; /* Increased from 14px */
-  line-height: 1.6;
+  font-size: var(--text-base);
+  line-height: 1.5;
   color: var(--text-main);
   background: var(--bg-body);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* Header */
@@ -67,7 +77,7 @@ body {
 }
 
 .header-brand {
-  display: none; /* Hide title as requested */
+  display: none;
 }
 
 .header-left {
@@ -77,17 +87,20 @@ body {
 }
 
 .user-name {
-  font-size: 14px;
-  opacity: 0.9;
+  font-size: var(--text-sm);
   font-weight: 500;
+  opacity: 0.9;
+  letter-spacing: 0.01em;
 }
 
 .hidden { display: none !important; }
 
 /* Header Buttons */
 .header .btn {
-  padding: 6px 12px;
-  font-size: 13px;
+  padding: 6px 14px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0.01em;
   border-radius: 0;
   margin: 0;
 }
@@ -105,7 +118,7 @@ body {
 /* Main Content Area */
 .main {
   padding: 24px 20px;
-  max-width: 800px; /* Constrain width for larger screens, but fill mobile */
+  max-width: 800px;
   margin: 0 auto;
 }
 
@@ -114,13 +127,15 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
   font-weight: 600;
   color: var(--text-main);
+  line-height: 1.25;
+  letter-spacing: -0.011em;
 }
 
 .section-title {
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--text-secondary);
   margin: 10px 0 6px 0;
   display: flex;
@@ -170,14 +185,18 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .summary-banner .summary-title {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
   color: var(--primary);
   margin: 0 0 2px 0;
 }
 
 .summary-banner .summary-meta {
-  font-size: 13px;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  letter-spacing: 0.005em;
   color: var(--text-secondary);
   margin: 0;
 }
@@ -185,7 +204,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Specs Grid */
 .specs-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr); /* 2 columns */
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px 24px;
 }
 
@@ -195,17 +214,19 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .spec-label {
-  font-size: 11px;
+  font-size: var(--text-xs);
+  font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   color: var(--text-tertiary);
   margin-bottom: 4px;
-  font-weight: 600;
 }
 
 .spec-value {
-  font-size: 15px;
+  font-size: var(--text-base);
   font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: -0.006em;
   color: var(--text-main);
 }
 
@@ -236,8 +257,10 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
   border: none;
   text-align: left;
-  font-size: 15px;
-  font-weight: 400;
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  font-weight: 500;
+  letter-spacing: -0.006em;
   color: var(--text-main);
   cursor: pointer;
   display: flex;
@@ -266,9 +289,10 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .accordion-body-inner {
-  font-size: 15px;
-  color: var(--text-secondary);
+  font-size: var(--text-base);
+  font-weight: 400;
   line-height: 1.6;
+  color: var(--text-secondary);
 }
 
 .accordion-answer-input {
@@ -277,7 +301,8 @@ h1, h2, h3, h4, h5, h6 {
   max-height: 500px;
   padding: 12px 14px;
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: var(--text-base);
+  font-weight: 400;
   line-height: 1.6;
   color: var(--text-main);
   background: var(--surface);
@@ -321,7 +346,9 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-md);
   padding: 14px 16px;
   margin-bottom: 10px;
-  font-size: 15px;
+  font-size: var(--text-base);
+  font-weight: 400;
+  line-height: 1.5;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -337,10 +364,10 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   padding: 2px 8px;
   border-radius: 0;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: var(--text-2xs);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
 }
 
 .badge-critical {
@@ -361,8 +388,9 @@ h1, h2, h3, h4, h5, h6 {
   width: 100%;
   padding: 14px;
   font-family: var(--font-sans);
-  font-size: 15px;
+  font-size: var(--text-base);
   font-weight: 600;
+  letter-spacing: 0.005em;
   text-align: center;
   border-radius: var(--radius-md);
   cursor: pointer;
@@ -401,7 +429,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* Success Button State */
 .btn-success {
-  background: #10b981; /* Green */
+  background: #10b981;
   color: white;
   cursor: default;
   opacity: 0.9;
@@ -417,9 +445,6 @@ h1, h2, h3, h4, h5, h6 {
   opacity: 0.9;
   color: white;
 }
-
-/* Engineering Review Specifics */
-/* (Removed unused card styles, now using confirmed-details grid) */
 
 /* Engineering Answers - Clean Stacked Layout */
 .engineering-answers-list {
@@ -444,17 +469,18 @@ h1, h2, h3, h4, h5, h6 {
 
 .eng-label {
   display: block;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   color: var(--primary);
   margin-bottom: 6px;
 }
 
 .eng-value {
   display: block;
-  font-size: 14px;
+  font-size: var(--text-base);
+  font-weight: 400;
   line-height: 1.6;
   color: var(--text-main);
 }
@@ -472,7 +498,7 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: space-between;
   align-items: center;
   padding: 8px 0;
-  font-size: 14px;
+  font-size: var(--text-base);
   border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
@@ -482,7 +508,8 @@ h1, h2, h3, h4, h5, h6 {
 
 .quote-line span:first-child {
   color: var(--text-secondary);
-  font-weight: 500;
+  font-weight: 450;
+  letter-spacing: 0.005em;
 }
 
 .quote-line span:last-child {
@@ -498,26 +525,29 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 16px;
+  font-size: var(--text-lg);
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--primary);
 }
 
 /* Attachments */
-/* Attachments – full width, aligned with other sections */
 .attachment-list {
   list-style: none;
   padding: 0;
   margin: 0;
   width: 100%;
+  display: block;
 }
 
 .attachment-list li {
   display: flex;
   align-items: center;
+  gap: 16px;
   width: 100%;
   box-sizing: border-box;
-  padding: 14px 16px;
+  min-height: 80px;
+  padding: 20px 24px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
@@ -529,8 +559,8 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .attachment-icon {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   flex-shrink: 0;
   background: var(--primary-light);
   color: var(--primary);
@@ -538,24 +568,27 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 11px;
-  margin-right: 14px;
+  font-weight: 600;
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  margin-right: 0;
 }
 
 .attachment-name {
   flex: 1;
   min-width: 0;
   font-weight: 500;
-  font-size: 15px;
+  font-size: var(--text-base);
+  letter-spacing: -0.006em;
 }
 
 .btn-link {
   background: transparent;
   color: var(--accent);
   border: none;
-  font-weight: 600;
-  font-size: 14px;
+  font-weight: 500;
+  font-size: var(--text-sm);
+  letter-spacing: 0.005em;
   padding: 4px 8px;
   width: auto;
   margin: 0;
@@ -566,7 +599,7 @@ h1, h2, h3, h4, h5, h6 {
   background: transparent;
 }
 
-/* Confirmed Details – Clean Stacked Layout (matching Engineering Answers) */
+/* Confirmed Details – Clean Stacked Layout */
 .confirmed-details {
   list-style: none;
   padding: 0;
@@ -590,17 +623,18 @@ h1, h2, h3, h4, h5, h6 {
 
 .confirmed-label {
   display: block;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: var(--text-xs);
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   color: var(--primary);
   margin-bottom: 6px;
 }
 
 .confirmed-value {
   display: block;
-  font-size: 14px;
+  font-size: var(--text-base);
+  font-weight: 400;
   line-height: 1.6;
   color: var(--text-main);
   text-align: left;
@@ -611,7 +645,8 @@ h1, h2, h3, h4, h5, h6 {
 .status-message {
   padding: 12px 16px;
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: var(--text-sm);
+  font-weight: 500;
   margin-bottom: 20px;
   display: none;
 }
@@ -646,7 +681,7 @@ h1, h2, h3, h4, h5, h6 {
 .collapsible-section-header span:first-child {
   font-weight: 600;
   color: var(--primary);
-  font-size: 14px;
+  font-size: var(--text-sm);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -663,6 +698,19 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--bg-subtle);
   border-radius: var(--radius-md);
   border: 2px dashed var(--border);
+}
+
+.neutral-message h3 {
+  font-size: var(--text-md);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.neutral-message p {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 /* Context Switching */
